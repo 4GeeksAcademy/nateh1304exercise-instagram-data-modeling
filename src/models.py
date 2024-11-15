@@ -7,28 +7,54 @@ from eralchemy2 import render_er
 
 Base = declarative_base()
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
+class User(Base):
+    __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
+    username = Column(String(30), unique=True, nullable=False)
+    firstname = Column(String(50))
+    lastname = Column(String(50))
+    email = Column(String(120), unique=True)
+    posts = relationship('Post')
+    comments = relationship('Comment')
+    followers = relationship('Follower', foreign_keys="[Follower.user_to_id]")
+    following = relationship('Follower', foreign_keys="[Follower.user_from_id]")
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
+
+class Follower(Base):
+    __tablename__ = 'follower'
+    user_from_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    user_to_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    follower = relationship('User', foreign_keys=[user_from_id])
+    followed = relationship('User', foreign_keys=[user_to_id])
+
+
+class Post(Base):
+    __tablename__ = 'post'
     id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    user = relationship('User')
+    comments = relationship('Comment')
+    media = relationship('Media')
 
-    def to_dict(self):
-        return {}
 
-## Draw from SQLAlchemy base
+class Media(Base):
+    __tablename__ = 'media'
+    id = Column(Integer, primary_key=True)
+    type = Column(String(255), name="media_type_enum")
+    url = Column(String(255), nullable=False)
+    post_id = Column(Integer, ForeignKey('post.id'))
+    post = relationship('Post')
+
+class Comment(Base):
+    __tablename__ = 'comment'
+    id = Column(Integer, primary_key=True)
+    comment_text = Column(String, nullable=False)
+    author_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    post_id = Column(Integer, ForeignKey('post.id'), nullable=False)
+    author = relationship('User')
+    post = relationship('Post')
+
+
 try:
     result = render_er(Base, 'diagram.png')
     print("Success! Check the diagram.png file")
